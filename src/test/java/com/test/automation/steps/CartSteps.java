@@ -2,7 +2,7 @@ package com.test.automation.steps;
 
 import java.util.List;
 
-import org.testng.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import com.test.automation.context.TestContext;
 import com.test.automation.data.Product;
@@ -20,13 +20,14 @@ import io.cucumber.java.pt.Quando;
  * Passos do carrinho: adicionar, remover, navegar e validar.
  *
  * Cada passo cria a página de que precisa a partir do driver, então os passos
- * não
- * dependem uns dos outros. O cabeçalho (contador e ícone do carrinho) existe em
- * todas
- * as páginas, por isso o HeaderComponent é usado direto.
+ * não dependem uns dos outros. O cabeçalho (contador e ícone do carrinho) existe
+ * em todas as páginas, por isso o HeaderComponent é usado direto.
  *
  * Produtos chegam como Product (ver ParameterTypes): {produto} nas frases e
  * List<Product> nas tabelas.
+ *
+ * Verificações com o Assertions do JUnit 5. Atenção à ordem no assertEquals:
+ * primeiro o ESPERADO, depois o valor ATUAL (o contrário do TestNG).
  */
 public class CartSteps {
 
@@ -78,31 +79,31 @@ public class CartSteps {
 
     @Quando("abro o carrinho")
     public void abroOCarrinho() {
-        Assert.assertTrue(carrinho().isLoaded(), "A página do carrinho não foi exibida.");
+        Assertions.assertTrue(carrinho().isLoaded(), "A página do carrinho não foi exibida.");
     }
 
     @Quando("volto para a lista de produtos pelo botão Continue Shopping")
     public void voltoParaAListaPeloBotaoContinueShopping() {
         InventoryPage inventoryPage = new CartPage(context.getDriver()).continueShopping();
-        Assert.assertTrue(inventoryPage.isLoaded(), "Não voltou para a página de produtos.");
+        Assertions.assertTrue(inventoryPage.isLoaded(), "Não voltou para a página de produtos.");
     }
 
     @Quando("abro os detalhes do produto {produto}")
     public void abroOsDetalhesDoProduto(Product produto) {
         ProductDetailsPage detailsPage = new InventoryPage(context.getDriver()).goToProductDetails(produto.getName());
-        Assert.assertTrue(detailsPage.isLoaded(), "A página de detalhes não foi exibida.");
+        Assertions.assertTrue(detailsPage.isLoaded(), "A página de detalhes não foi exibida.");
     }
 
     @Quando("volto para a lista de produtos pela página de detalhes")
     public void voltoParaAListaPelaPaginaDeDetalhes() {
         InventoryPage inventoryPage = new ProductDetailsPage(context.getDriver()).backToProducts();
-        Assert.assertTrue(inventoryPage.isLoaded(), "Não voltou para a página de produtos.");
+        Assertions.assertTrue(inventoryPage.isLoaded(), "Não voltou para a página de produtos.");
     }
 
     @Quando("recarrego a página")
     public void recarregoAPagina() {
         new InventoryPage(context.getDriver()).refreshPage();
-        Assert.assertTrue(new InventoryPage(context.getDriver()).isLoaded(),
+        Assertions.assertTrue(new InventoryPage(context.getDriver()).isLoaded(),
                 "A página de produtos não carregou após recarregar.");
     }
 
@@ -110,37 +111,41 @@ public class CartSteps {
 
     @Entao("o contador do carrinho deve ser {int}")
     public void oContadorDoCarrinhoDeveSer(int quantidadeEsperada) {
-        Assert.assertEquals(new HeaderComponent(context.getDriver()).getCartBadgeCount(), quantidadeEsperada,
+        // JUnit: (esperado, atual, mensagem)
+        Assertions.assertEquals(quantidadeEsperada, new HeaderComponent(context.getDriver()).getCartBadgeCount(),
                 "Quantidade no ícone do carrinho diferente da esperada.");
     }
 
     @Entao("o carrinho deve conter os produtos:")
     public void oCarrinhoDeveConterOsProdutos(List<Product> produtosEsperados) {
         CartPage cartPage = carrinho();
-        Assert.assertTrue(cartPage.isLoaded(), "A página do carrinho não foi exibida.");
+        Assertions.assertTrue(cartPage.isLoaded(), "A página do carrinho não foi exibida.");
 
-        List<String> nomesEsperados = produtosEsperados.stream().map(Product::getName).toList();
-        // Sem ordem: o que importa é ter exatamente estes produtos
-        Assert.assertEqualsNoOrder(cartPage.getItemNames().toArray(), nomesEsperados.toArray(),
+        // Sem ordem: o que importa é ter exatamente estes produtos.
+        // O JUnit não tem assertEqualsNoOrder; ordenando as duas listas,
+        // a comparação ignora a ordem, mas não deixa passar item a mais ou a menos.
+        List<String> nomesEsperados = produtosEsperados.stream().map(Product::getName).sorted().toList();
+        List<String> nomesNoCarrinho = cartPage.getItemNames().stream().sorted().toList();
+        Assertions.assertEquals(nomesEsperados, nomesNoCarrinho,
                 "Os itens do carrinho são diferentes dos esperados.");
     }
 
     @Entao("o carrinho deve estar vazio")
     public void oCarrinhoDeveEstarVazio() {
-        Assert.assertEquals(carrinho().getItemCount(), 0, "O carrinho deveria estar vazio.");
+        Assertions.assertEquals(0, carrinho().getItemCount(), "O carrinho deveria estar vazio.");
     }
 
     // Botão "Remove" na lista de produtos
     @Entao("na lista de produtos, o produto {produto} deve estar marcado como adicionado")
     public void oProdutoDeveEstarMarcadoComoAdicionado(Product produto) {
-        Assert.assertTrue(new InventoryPage(context.getDriver()).isProductInCart(produto.getName()),
+        Assertions.assertTrue(new InventoryPage(context.getDriver()).isProductInCart(produto.getName()),
                 "O produto '" + produto + "' deveria estar no carrinho (botão 'Remove').");
     }
 
     // Botão "Add to cart" na lista de produtos
     @Entao("na lista de produtos, o produto {produto} deve estar disponível para adicionar")
     public void oProdutoDeveEstarDisponivelParaAdicionar(Product produto) {
-        Assert.assertFalse(new InventoryPage(context.getDriver()).isProductInCart(produto.getName()),
+        Assertions.assertFalse(new InventoryPage(context.getDriver()).isProductInCart(produto.getName()),
                 "O produto '" + produto + "' não deveria estar no carrinho (botão 'Add to cart').");
     }
 }
