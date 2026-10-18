@@ -2,7 +2,7 @@ package com.test.automation.steps;
 
 import java.time.Year;
 
-import org.testng.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import com.test.automation.config.ConfigReader;
 import com.test.automation.context.TestContext;
@@ -16,6 +16,9 @@ import io.cucumber.java.pt.Quando;
 /**
  * Passos das partes presentes em todas as páginas internas:
  * menu lateral (HeaderComponent) e rodapé (FooterComponent).
+ *
+ * Verificações com o Assertions do JUnit 5. Atenção à ordem no assertEquals:
+ * primeiro o ESPERADO, depois o valor ATUAL (o contrário do TestNG).
  */
 public class NavigationSteps {
 
@@ -76,34 +79,37 @@ public class NavigationSteps {
 
     @Entao("o menu lateral deve estar aberto")
     public void oMenuLateralDeveEstarAberto() {
-        Assert.assertTrue(header().isMenuOpen(), "O menu deveria estar aberto.");
+        Assertions.assertTrue(header().isMenuOpen(), "O menu deveria estar aberto.");
     }
 
     @Entao("o menu lateral deve estar fechado")
     public void oMenuLateralDeveEstarFechado() {
-        Assert.assertFalse(header().isMenuOpen(), "O menu deveria estar fechado.");
+        Assertions.assertFalse(header().isMenuOpen(), "O menu deveria estar fechado.");
     }
 
     @Entao("o link About deve apontar para {string}")
     public void oLinkAboutDeveApontarPara(String urlEsperada) {
-        Assert.assertEquals(header().getAboutLinkUrl(), urlEsperada, "O link 'About' aponta para outro endereço.");
+        // JUnit: (esperado, atual, mensagem)
+        Assertions.assertEquals(urlEsperada, header().getAboutLinkUrl(),
+                "O link 'About' aponta para outro endereço.");
     }
 
     // target vazio = mesma aba; "_blank" = nova aba
     @Entao("o link About deve estar configurado para abrir na mesma aba")
     public void oLinkAboutDeveAbrirNaMesmaAba() {
-        Assert.assertEquals(header().getAboutLinkTarget(), "",
+        Assertions.assertEquals("", header().getAboutLinkTarget(),
                 "O link 'About' está configurado para abrir em outra aba.");
     }
 
     @Entao("devo estar no site {string}")
     public void devoEstarNoSite(String trechoDaUrl) {
-        Assert.assertTrue(header().hasPageUrl(trechoDaUrl), "A URL atual não contém '" + trechoDaUrl + "'.");
+        Assertions.assertTrue(header().hasPageUrl(trechoDaUrl), "A URL atual não contém '" + trechoDaUrl + "'.");
     }
 
     @Entao("nenhuma aba nova deve ter sido aberta")
     public void nenhumaAbaNovaDeveTerSidoAberta() {
-        Assert.assertEquals(header().getOpenTabsCount(), abasAntesDoAbout, "O clique abriu outra aba.");
+        // Esperado: a quantidade de abas de ANTES do clique
+        Assertions.assertEquals(abasAntesDoAbout, header().getOpenTabsCount(), "O clique abriu outra aba.");
     }
 
     // ---------- Rodapé ----------
@@ -115,26 +121,28 @@ public class NavigationSteps {
 
     @Entao("o link do X deve apontar para {string}")
     public void oLinkDoXDeveApontarPara(String urlEsperada) {
-        Assert.assertTrue(footer().isVisibleX(), "O link do X não está visível.");
-        Assert.assertEquals(footer().getXLinkUrl(), urlEsperada, "Link do X diferente do esperado.");
+        Assertions.assertTrue(footer().isVisibleX(), "O link do X não está visível.");
+        Assertions.assertEquals(urlEsperada, footer().getXLinkUrl(), "Link do X diferente do esperado.");
     }
 
     @Entao("o link do Facebook deve apontar para {string}")
     public void oLinkDoFacebookDeveApontarPara(String urlEsperada) {
-        Assert.assertTrue(footer().isVisibleFacebook(), "O link do Facebook não está visível.");
-        Assert.assertEquals(footer().getFacebookLinkUrl(), urlEsperada, "Link do Facebook diferente do esperado.");
+        Assertions.assertTrue(footer().isVisibleFacebook(), "O link do Facebook não está visível.");
+        Assertions.assertEquals(urlEsperada, footer().getFacebookLinkUrl(),
+                "Link do Facebook diferente do esperado.");
     }
 
     @Entao("o link do LinkedIn deve apontar para {string}")
     public void oLinkDoLinkedInDeveApontarPara(String urlEsperada) {
-        Assert.assertTrue(footer().isVisibleLinkedIn(), "O link do LinkedIn não está visível.");
-        Assert.assertEquals(footer().getLinkedInLinkUrl(), urlEsperada, "Link do LinkedIn diferente do esperado.");
+        Assertions.assertTrue(footer().isVisibleLinkedIn(), "O link do LinkedIn não está visível.");
+        Assertions.assertEquals(urlEsperada, footer().getLinkedInLinkUrl(),
+                "Link do LinkedIn diferente do esperado.");
     }
 
     // Links externos abrem em nova aba, para o usuário não sair da loja
     @Entao("os links das redes sociais devem abrir em nova aba")
     public void osLinksDasRedesSociaisDevemAbrirEmNovaAba() {
-        Assert.assertTrue(footer().socialLinksOpenInNewTab(),
+        Assertions.assertTrue(footer().socialLinksOpenInNewTab(),
                 "Os links das redes sociais deveriam abrir em nova aba.");
     }
 
@@ -142,6 +150,6 @@ public class NavigationSteps {
     public void oCopyrightDeveSer(String textoEsperado) {
         // "[ano atual]" no .feature vira o ano de hoje: o cenário não quebra na virada do ano
         String esperado = textoEsperado.replace("[ano atual]", String.valueOf(Year.now().getValue()));
-        Assert.assertEquals(footer().getCopyRight(), esperado, "Texto de copyright diferente do esperado.");
+        Assertions.assertEquals(esperado, footer().getCopyRight(), "Texto de copyright diferente do esperado.");
     }
 }
