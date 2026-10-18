@@ -199,10 +199,13 @@ public class HeaderComponent extends BasePage {
 
     // ---------- AÇÕES: carrinho ----------
 
-    /** Abre a página do carrinho. */
+    /** Abre o carrinho e espera a página cart.html carregar. */
     public CartPage openCart() {
         Log.info("Abrindo o carrinho.");
         click(cartLinkElement);
+        // Sem esta espera, a contagem pode ler os nomes da lista de produtos
+        // (mesmo data-test) antes de a página do carrinho abrir
+        wait.until(ExpectedConditions.urlContains("cart.html"));
         return new CartPage(driver);
     }
 }
