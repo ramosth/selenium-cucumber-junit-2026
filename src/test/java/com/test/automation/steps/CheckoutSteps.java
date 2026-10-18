@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-import org.testng.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import com.test.automation.context.TestContext;
 import com.test.automation.data.Product;
@@ -40,6 +40,9 @@ import io.cucumber.java.pt.Quando;
  * Recibo em PDF ("Generate PDF order", na tela de pedido concluído):
  *   - nome do arquivo: data e hora do pedido em UTC (ex.: swag-labs-order-2026-10-15_21-52-47.pdf)
  *   - conteúdo: data e hora no horário local, em inglês (ex.: October 15, 2026 at 6:52 PM)
+ *
+ * Verificações com o Assertions do JUnit 5. Atenção à ordem no assertEquals:
+ * primeiro o ESPERADO, depois o valor ATUAL (o contrário do TestNG).
  */
 public class CheckoutSteps {
 
@@ -74,7 +77,7 @@ public class CheckoutSteps {
     @Quando("sigo para o checkout")
     public void sigoParaOCheckout() {
         CheckoutInformationPage informationPage = new HeaderComponent(context.getDriver()).openCart().goToCheckout();
-        Assert.assertTrue(informationPage.isLoaded(), "A tela de dados do checkout não foi exibida.");
+        Assertions.assertTrue(informationPage.isLoaded(), "A tela de dados do checkout não foi exibida.");
     }
 
     @Quando("preencho os dados do comprador com nome {string}, sobrenome {string} e CEP {string}")
@@ -111,10 +114,10 @@ public class CheckoutSteps {
         sigoParaOCheckout();
         preenchoOsDadosDoComprador(nome, sobrenome, cep);
         clicoEmContinue();
-        Assert.assertTrue(new CheckoutOverviewPage(context.getDriver()).isLoaded(),
+        Assertions.assertTrue(new CheckoutOverviewPage(context.getDriver()).isLoaded(),
                 "A tela de resumo do pedido não foi exibida.");
         clicoEmFinish();
-        Assert.assertTrue(new CheckoutCompletePage(context.getDriver()).isLoaded(),
+        Assertions.assertTrue(new CheckoutCompletePage(context.getDriver()).isLoaded(),
                 "A tela de pedido concluído não foi exibida.");
     }
 
@@ -123,14 +126,15 @@ public class CheckoutSteps {
     @Entao("devo ver no checkout a mensagem de erro {string}")
     public void devoVerNoCheckoutAMensagemDeErro(String mensagemEsperada) {
         CheckoutInformationPage informationPage = new CheckoutInformationPage(context.getDriver());
-        Assert.assertTrue(informationPage.isErrorMessageDisplayed(), "Era esperada uma mensagem de erro.");
-        Assert.assertEquals(informationPage.getErrorMessage(), mensagemEsperada,
+        Assertions.assertTrue(informationPage.isErrorMessageDisplayed(), "Era esperada uma mensagem de erro.");
+        // JUnit: (esperado, atual, mensagem)
+        Assertions.assertEquals(mensagemEsperada, informationPage.getErrorMessage(),
                 "Mensagem de erro diferente da esperada.");
     }
 
     @Entao("devo continuar na tela de dados do comprador")
     public void devoContinuarNaTelaDeDadosDoComprador() {
-        Assert.assertTrue(new CheckoutInformationPage(context.getDriver()).isLoaded(),
+        Assertions.assertTrue(new CheckoutInformationPage(context.getDriver()).isLoaded(),
                 "Era esperado continuar na tela de dados do checkout.");
     }
 
@@ -139,10 +143,13 @@ public class CheckoutSteps {
     @Entao("o resumo do pedido deve conter os produtos:")
     public void oResumoDoPedidoDeveConterOsProdutos(List<Product> produtosEsperados) {
         CheckoutOverviewPage overviewPage = new CheckoutOverviewPage(context.getDriver());
-        Assert.assertTrue(overviewPage.isLoaded(), "A tela de resumo do pedido não foi exibida.");
+        Assertions.assertTrue(overviewPage.isLoaded(), "A tela de resumo do pedido não foi exibida.");
 
-        List<String> nomesEsperados = produtosEsperados.stream().map(Product::getName).toList();
-        Assert.assertEqualsNoOrder(overviewPage.getItemNames().toArray(), nomesEsperados.toArray(),
+        // Sem ordem: o JUnit não tem assertEqualsNoOrder; ordenando as duas listas,
+        // a comparação ignora a ordem, mas não deixa passar item a mais ou a menos.
+        List<String> nomesEsperados = produtosEsperados.stream().map(Product::getName).sorted().toList();
+        List<String> nomesNoResumo = overviewPage.getItemNames().stream().sorted().toList();
+        Assertions.assertEquals(nomesEsperados, nomesNoResumo,
                 "Os itens do resumo são diferentes dos esperados.");
     }
 
@@ -152,19 +159,20 @@ public class CheckoutSteps {
         Log.info("Valores na tela: Item total " + overviewPage.getItemTotal()
                 + " | Tax " + overviewPage.getTax() + " | Total " + overviewPage.getTotal());
 
-        Assert.assertEquals(overviewPage.getItemTotal(), itemTotal, PRICE_DELTA,
+        // JUnit: (esperado, atual, margem, mensagem)
+        Assertions.assertEquals(itemTotal, overviewPage.getItemTotal(), PRICE_DELTA,
                 "Item total diferente do esperado (soma dos preços).");
-        Assert.assertEquals(overviewPage.getTax(), taxa, PRICE_DELTA,
+        Assertions.assertEquals(taxa, overviewPage.getTax(), PRICE_DELTA,
                 "Taxa diferente da esperada (8% do item total).");
-        Assert.assertEquals(overviewPage.getTotal(), total, PRICE_DELTA,
+        Assertions.assertEquals(total, overviewPage.getTotal(), PRICE_DELTA,
                 "Total diferente do esperado (item total + taxa).");
     }
 
     @Entao("devo ver a confirmação do pedido {string}")
     public void devoVerAConfirmacaoDoPedido(String mensagemEsperada) {
         CheckoutCompletePage completePage = new CheckoutCompletePage(context.getDriver());
-        Assert.assertTrue(completePage.isLoaded(), "A tela de pedido concluído não foi exibida.");
-        Assert.assertEquals(completePage.getConfirmationMessage(), mensagemEsperada,
+        Assertions.assertTrue(completePage.isLoaded(), "A tela de pedido concluído não foi exibida.");
+        Assertions.assertEquals(mensagemEsperada, completePage.getConfirmationMessage(),
                 "Mensagem de confirmação diferente da esperada.");
     }
 
@@ -172,12 +180,12 @@ public class CheckoutSteps {
 
     @Entao("devo estar na página do carrinho")
     public void devoEstarNaPaginaDoCarrinho() {
-        Assert.assertTrue(new CartPage(context.getDriver()).isLoaded(), "Era esperado estar no carrinho.");
+        Assertions.assertTrue(new CartPage(context.getDriver()).isLoaded(), "Era esperado estar no carrinho.");
     }
 
     @Entao("devo estar na lista de produtos")
     public void devoEstarNaListaDeProdutos() {
-        Assert.assertTrue(new InventoryPage(context.getDriver()).isLoaded(),
+        Assertions.assertTrue(new InventoryPage(context.getDriver()).isLoaded(),
                 "Era esperado estar na lista de produtos.");
     }
 
@@ -186,13 +194,14 @@ public class CheckoutSteps {
     @Quando("gero o recibo em PDF")
     public void geroOReciboEmPdf() {
         CheckoutCompletePage completePage = new CheckoutCompletePage(context.getDriver());
-        Assert.assertTrue(completePage.isGeneratePdfButtonDisplayed(), "O botão 'Generate PDF order' não apareceu.");
+        Assertions.assertTrue(completePage.isGeneratePdfButtonDisplayed(),
+                "O botão 'Generate PDF order' não apareceu.");
 
         DownloadUtils.cleanDownloadDir(); // garante que o arquivo encontrado é o deste cenário
         completePage.clickGeneratePdfOrder();
 
         pdf = DownloadUtils.waitForFile(FILE_PREFIX, FILE_EXTENSION, DOWNLOAD_TIMEOUT_SECONDS);
-        Assert.assertNotNull(pdf, "O PDF não foi baixado em " + DOWNLOAD_TIMEOUT_SECONDS + " segundos.");
+        Assertions.assertNotNull(pdf, "O PDF não foi baixado em " + DOWNLOAD_TIMEOUT_SECONDS + " segundos.");
         textoDoPdf = PdfUtils.readText(pdf);
 
         Log.info("PDF baixado: " + pdf.getName());
@@ -202,7 +211,7 @@ public class CheckoutSteps {
     @Entao("o nome do arquivo deve ter a data e hora do pedido em UTC")
     public void oNomeDoArquivoDeveTerADataDoPedidoEmUtc() {
         String nome = pdf.getName();
-        Assert.assertTrue(nome.startsWith(FILE_PREFIX) && nome.endsWith(FILE_EXTENSION),
+        Assertions.assertTrue(nome.startsWith(FILE_PREFIX) && nome.endsWith(FILE_EXTENSION),
                 "Nome do arquivo fora do padrão: " + nome);
 
         String dataHora = nome.substring(FILE_PREFIX.length(), nome.length() - FILE_EXTENSION.length());
@@ -210,7 +219,7 @@ public class CheckoutSteps {
         long diferencaSegundos = Math.abs(Duration.between(horaDoPedido.toInstant(), horaDoArquivo).getSeconds());
 
         Log.info("Data no nome do arquivo (UTC): " + dataHora + " | diferença do Finish: " + diferencaSegundos + "s");
-        Assert.assertTrue(diferencaSegundos <= 120,
+        Assertions.assertTrue(diferencaSegundos <= 120,
                 "A data no nome do arquivo (" + dataHora + " UTC) está longe do horário do pedido.");
     }
 
@@ -252,7 +261,7 @@ public class CheckoutSteps {
                 break;
             }
         }
-        Assert.assertTrue(encontrou,
+        Assertions.assertTrue(encontrou,
                 "Data do pedido ausente ou fora da tolerância. Esperado perto de: " + horaDoPedido.format(RECEIPT_DATE));
     }
 
@@ -264,6 +273,6 @@ public class CheckoutSteps {
     }
 
     private void assertPdfContem(String esperado, String mensagem) {
-        Assert.assertTrue(textoDoPdf.contains(esperado), mensagem + ": '" + esperado + "'");
+        Assertions.assertTrue(textoDoPdf.contains(esperado), mensagem + ": '" + esperado + "'");
     }
 }
