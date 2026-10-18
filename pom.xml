@@ -15,7 +15,7 @@
     <!-- As dependências do Cucumber precisam estar SEMPRE na mesma versão.
          Para atualizar, troque só aqui. -->
     <cucumber.version>7.34.8</cucumber.version>
-    <!-- O plugin Surefire e o provider dele precisam estar na mesma versão -->
+    <!-- Versão do plugin Surefire (quem roda os testes no mvn test) -->
     <surefire.version>3.5.4</surefire.version>
   </properties>
 
@@ -82,15 +82,6 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- TEMPORÁRIO: os steps ainda usam org.testng.Assert.
-         Sai na etapa 4, quando todos os steps usarem o Assertions do JUnit. -->
-    <dependency>
-      <groupId>org.testng</groupId>
-      <artifactId>testng</artifactId>
-      <version>7.12.0</version>
-      <scope>test</scope>
-    </dependency>
-
     <!-- ===================== Base reaproveitada ===================== -->
 
     <!-- Source: https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
@@ -134,19 +125,13 @@
       <!-- O Surefire encontra a classe TestRunner (padrão de nome "Test*");
            o @Suite dela chama o motor do Cucumber.
            Para escolher os cenários: mvn test "-Dcucumber.filter.tags=@login" -->
-            <plugin>
+      <!-- O Surefire encontra a classe TestRunner (padrão de nome "Test*") e
+           detecta sozinho o JUnit Platform; o @Suite dela chama o motor do Cucumber.
+           Para escolher os cenários: mvn test "-Dgroups=login" -->
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${surefire.version}</version>
-        <!-- Força o provider do JUnit Platform. Sem isto, enquanto o TestNG
-             estiver no projeto, o Surefire escolheria o TestNG e rodaria 0 testes. -->
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.maven.surefire</groupId>
-            <artifactId>surefire-junit-platform</artifactId>
-            <version>${surefire.version}</version>
-          </dependency>
-        </dependencies>
       </plugin>
     </plugins>
   </build>
