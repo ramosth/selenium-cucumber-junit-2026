@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import org.testng.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import com.test.automation.context.TestContext;
 import com.test.automation.data.Product;
@@ -25,6 +25,9 @@ import io.cucumber.java.pt.Quando;
  *
  * Os passos verificam o comportamento CORRETO. Com os usuários que têm defeitos de
  * propósito, alguns cenários falham: eles têm a tag @expected-failure.
+ *
+ * Verificações com o Assertions do JUnit 5. Atenção à ordem no assertEquals:
+ * primeiro o ESPERADO, depois o valor ATUAL (o contrário do TestNG).
  */
 public class ProductSteps {
 
@@ -52,12 +55,13 @@ public class ProductSteps {
 
     @Entao("não deve aparecer alerta de erro")
     public void naoDeveAparecerAlertaDeErro() {
-        Assert.assertNull(alertaDaOrdenacao, "Apareceu um alerta de erro ao ordenar: " + alertaDaOrdenacao);
+        Assertions.assertNull(alertaDaOrdenacao, "Apareceu um alerta de erro ao ordenar: " + alertaDaOrdenacao);
     }
 
     @Entao("a ordenação selecionada deve ser {string}")
     public void aOrdenacaoSelecionadaDeveSer(String opcaoEsperada) {
-        Assert.assertEquals(new InventoryPage(context.getDriver()).getSelectedSort(), opcaoEsperada,
+        // JUnit: (esperado, atual, mensagem)
+        Assertions.assertEquals(opcaoEsperada, new InventoryPage(context.getDriver()).getSelectedSort(),
                 "A opção de ordenação selecionada é diferente da esperada.");
     }
 
@@ -66,7 +70,8 @@ public class ProductSteps {
         List<String> nomes = new InventoryPage(context.getDriver()).getProductNames();
         List<String> esperado = new ArrayList<>(nomes);
         Collections.sort(esperado);
-        Assert.assertEquals(nomes, esperado, "Os produtos não estão em ordem alfabética (A a Z).");
+        // esperado = cópia ordenada pelo Java; nomes = como a tela mostrou
+        Assertions.assertEquals(esperado, nomes, "Os produtos não estão em ordem alfabética (A a Z).");
     }
 
     @Entao("os produtos devem estar em ordem alfabética de Z a A")
@@ -74,7 +79,7 @@ public class ProductSteps {
         List<String> nomes = new InventoryPage(context.getDriver()).getProductNames();
         List<String> esperado = new ArrayList<>(nomes);
         esperado.sort(Comparator.reverseOrder());
-        Assert.assertEquals(nomes, esperado, "Os produtos não estão em ordem alfabética decrescente (Z a A).");
+        Assertions.assertEquals(esperado, nomes, "Os produtos não estão em ordem alfabética decrescente (Z a A).");
     }
 
     @Entao("os preços devem estar do menor para o maior")
@@ -83,7 +88,7 @@ public class ProductSteps {
         context.getExtentTest().info("Preços exibidos: " + precos);
         List<Double> esperado = new ArrayList<>(precos);
         Collections.sort(esperado);
-        Assert.assertEquals(precos, esperado, "Os preços não estão em ordem crescente.");
+        Assertions.assertEquals(esperado, precos, "Os preços não estão em ordem crescente.");
     }
 
     @Entao("os preços devem estar do maior para o menor")
@@ -92,32 +97,34 @@ public class ProductSteps {
         context.getExtentTest().info("Preços exibidos: " + precos);
         List<Double> esperado = new ArrayList<>(precos);
         esperado.sort(Comparator.reverseOrder());
-        Assert.assertEquals(precos, esperado, "Os preços não estão em ordem decrescente.");
+        Assertions.assertEquals(esperado, precos, "Os preços não estão em ordem decrescente.");
     }
 
     // ---------- Detalhes do produto ----------
 
     @Entao("na lista de produtos, o produto {produto} deve mostrar o preço do cadastro")
     public void naListaOProdutoDeveMostrarOPrecoDoCadastro(Product produto) {
-        Assert.assertEquals(new InventoryPage(context.getDriver()).getProductPrice(produto.getName()),
-                produto.getPrice(), PRICE_DELTA, "Preço na lista de produtos diferente do esperado.");
+        // JUnit: (esperado, atual, margem, mensagem)
+        Assertions.assertEquals(produto.getPrice(),
+                new InventoryPage(context.getDriver()).getProductPrice(produto.getName()),
+                PRICE_DELTA, "Preço na lista de produtos diferente do esperado.");
     }
 
     @Entao("a página de detalhes deve ser do produto {produto}")
     public void aPaginaDeDetalhesDeveSerDoProduto(Product produto) {
-        Assert.assertEquals(new ProductDetailsPage(context.getDriver()).getProductIdFromUrl(), produto.getId(),
+        Assertions.assertEquals(produto.getId(), new ProductDetailsPage(context.getDriver()).getProductIdFromUrl(),
                 "A página aberta é de outro produto (id na URL).");
     }
 
     @Entao("a página de detalhes deve mostrar o nome, a descrição, o preço e a imagem do produto {produto}")
     public void aPaginaDeDetalhesDeveMostrarOsDadosDoProduto(Product produto) {
         ProductDetailsPage detailsPage = new ProductDetailsPage(context.getDriver());
-        Assert.assertEquals(detailsPage.getProductName(), produto.getName(), "Nome diferente do esperado.");
-        Assert.assertEquals(detailsPage.getProductDescription(), produto.getDescription(),
+        Assertions.assertEquals(produto.getName(), detailsPage.getProductName(), "Nome diferente do esperado.");
+        Assertions.assertEquals(produto.getDescription(), detailsPage.getProductDescription(),
                 "Descrição diferente da esperada.");
-        Assert.assertEquals(detailsPage.getProductPrice(), produto.getPrice(), PRICE_DELTA,
+        Assertions.assertEquals(produto.getPrice(), detailsPage.getProductPrice(), PRICE_DELTA,
                 "Preço na página de detalhes diferente do esperado.");
-        Assert.assertTrue(detailsPage.isProductImageVisible(), "A imagem do produto não está visível.");
+        Assertions.assertTrue(detailsPage.isProductImageVisible(), "A imagem do produto não está visível.");
     }
 
     // ---------- Carrinho pela página de detalhes ----------
@@ -134,13 +141,13 @@ public class ProductSteps {
 
     @Entao("o botão Remove deve aparecer na página de detalhes")
     public void oBotaoRemoveDeveAparecer() {
-        Assert.assertTrue(new ProductDetailsPage(context.getDriver()).isRemoveButtonVisible(),
+        Assertions.assertTrue(new ProductDetailsPage(context.getDriver()).isRemoveButtonVisible(),
                 "O botão 'Remove' não apareceu após adicionar.");
     }
 
     @Entao("o botão Remove não deve aparecer na página de detalhes")
     public void oBotaoRemoveNaoDeveAparecer() {
-        Assert.assertFalse(new ProductDetailsPage(context.getDriver()).isRemoveButtonVisible(),
+        Assertions.assertFalse(new ProductDetailsPage(context.getDriver()).isRemoveButtonVisible(),
                 "O botão 'Remove' continuou aparecendo após remover.");
     }
 }
