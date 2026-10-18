@@ -1,6 +1,6 @@
 package com.test.automation.steps;
 
-import org.testng.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import com.test.automation.context.TestContext;
 import com.test.automation.data.User;
@@ -25,6 +25,9 @@ import io.cucumber.java.pt.Quando;
  *
  * Os passos são globais e independentes: cada um cria a LoginPage a partir do driver,
  * então funcionam em qualquer feature (ex.: a mensagem de erro depois de um logout).
+ *
+ * Verificações com o Assertions do JUnit 5. Atenção à ordem no assertEquals:
+ * primeiro o ESPERADO, depois o valor ATUAL (o contrário do TestNG).
  */
 public class LoginSteps {
 
@@ -38,21 +41,21 @@ public class LoginSteps {
 
     @Dado("que estou na página de login")
     public void queEstouNaPaginaDeLogin() {
-        Assert.assertTrue(new LoginPage(context.getDriver()).isLoaded(), "A tela de login não foi exibida.");
+        Assertions.assertTrue(new LoginPage(context.getDriver()).isLoaded(), "A tela de login não foi exibida.");
     }
 
     /** Atalho usado como pré-condição pelas outras features (carrinho, checkout...). */
     @Dado("que estou logado com o usuário padrão")
     public void queEstouLogadoComOUsuarioPadrao() {
         InventoryPage inventoryPage = new LoginPage(context.getDriver()).loginAsStandardUser();
-        Assert.assertTrue(inventoryPage.isLoaded(), "A página de produtos não foi exibida após o login.");
+        Assertions.assertTrue(inventoryPage.isLoaded(), "A página de produtos não foi exibida após o login.");
     }
 
     /** Login com qualquer usuário do Sauce Demo. Ex.: "que estou logado com o usuário PROBLEM" */
     @Dado("que estou logado com o usuário {usuario}")
     public void queEstouLogadoComOUsuario(User usuario) {
         InventoryPage inventoryPage = new LoginPage(context.getDriver()).loginAs(usuario);
-        Assert.assertTrue(inventoryPage.isLoaded(), "A página de produtos não foi exibida após o login.");
+        Assertions.assertTrue(inventoryPage.isLoaded(), "A página de produtos não foi exibida após o login.");
     }
 
     // ---------- Ações ----------
@@ -66,14 +69,14 @@ public class LoginSteps {
     @Quando("faço logout")
     public void facoLogout() {
         LoginPage loginPage = new HeaderComponent(context.getDriver()).logout();
-        Assert.assertTrue(loginPage.isLoaded(), "Após o logout, deveria voltar para a tela de login.");
+        Assertions.assertTrue(loginPage.isLoaded(), "Após o logout, deveria voltar para a tela de login.");
     }
 
     // ---------- Validações: login com sucesso ----------
 
     @Entao("devo ver a página de produtos")
     public void devoVerAPaginaDeProdutos() {
-        Assert.assertTrue(new LoginPage(context.getDriver()).isLoginSuccessful(),
+        Assertions.assertTrue(new LoginPage(context.getDriver()).isLoginSuccessful(),
                 "Era esperado entrar no sistema, mas a tela 'Products' não foi exibida.");
     }
 
@@ -82,15 +85,16 @@ public class LoginSteps {
     @Entao("devo ver a mensagem de erro {string}")
     public void devoVerAMensagemDeErro(String mensagemEsperada) {
         LoginPage loginPage = new LoginPage(context.getDriver());
-        Assert.assertTrue(loginPage.isErrorMessageDisplayed(),
+        Assertions.assertTrue(loginPage.isErrorMessageDisplayed(),
                 "Era esperada uma mensagem de erro, mas nenhuma foi exibida.");
-        Assert.assertEquals(loginPage.getErrorMessage(), mensagemEsperada,
+        // JUnit: (esperado, atual, mensagem)
+        Assertions.assertEquals(mensagemEsperada, loginPage.getErrorMessage(),
                 "A mensagem de erro exibida é diferente da esperada.");
     }
 
     @E("devo continuar na página de login")
     public void devoContinuarNaPaginaDeLogin() {
-        Assert.assertTrue(new LoginPage(context.getDriver()).isOnLoginPage(),
+        Assertions.assertTrue(new LoginPage(context.getDriver()).isOnLoginPage(),
                 "Era esperado continuar na tela de login.");
     }
 }
