@@ -1,28 +1,28 @@
 package com.test.automation.runners;
 
-import io.cucumber.testng.AbstractTestNGCucumberTests;
-import io.cucumber.testng.CucumberOptions;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectPackages;
+import org.junit.platform.suite.api.Suite;
 
 /**
- * Ponto de entrada da execução: substitui as suítes XML do projeto TestNG.
+ * Ponto de entrada da execução.
  *
- * O Surefire encontra esta classe pelo nome (padrão "Test*") e o TestNG a
- * executa.
- * A classe-mãe AbstractTestNGCucumberTests transforma cada cenário do .feature
- * em um teste do TestNG.
+ * O Surefire encontra esta classe pelo nome (padrão "Test*") e a entrega ao
+ * JUnit Platform. As anotações dizem o que fazer:
+ *   @Suite          -> esta classe é uma suíte (não tem testes próprios)
+ *   @IncludeEngines -> quem executa é o motor do Cucumber
+ *   @SelectPackages -> onde estão os .feature (pasta "features" do classpath)
  *
- * Para rodar só uma parte dos cenários, use tags:
- * mvn test "-Dcucumber.filter.tags=@login"
+ * As configurações do Cucumber (glue, plugins, nomes) ficam em
+ * src/test/resources/junit-platform.properties.
+ *
+ * Para rodar só uma parte dos cenários, use as tags do JUnit (sem o @):
+ * mvn test "-Dgroups=login"
+ * mvn test "-Dgroups=login & !login-invalido"
  */
-@CucumberOptions(
-        // Onde estão os arquivos .feature
-        features = "src/test/resources/features",
-        // Pacotes onde o Cucumber procura os Hooks e os Steps
-        glue = { "com.test.automation.hooks", "com.test.automation.steps" },
-        // "pretty" mostra cada passo no console; "html" gera o relatório do Cucumber
-        plugin = { "pretty", "html:reports/cucumber-report.html" },
-        // Console sem códigos de cor (fica legível no terminal do Windows e no Jenkins)
-        monochrome = true)
-public class TestRunner extends AbstractTestNGCucumberTests {
-    // Vazia de propósito: a classe-mãe já faz todo o trabalho
+@Suite
+@IncludeEngines("cucumber")
+@SelectPackages("features")
+public class TestRunner {
+    // Vazia de propósito: as anotações já fazem todo o trabalho
 }

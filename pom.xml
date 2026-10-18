@@ -12,10 +12,26 @@
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- As três dependências do Cucumber precisam estar SEMPRE na mesma versão.
+    <!-- As dependências do Cucumber precisam estar SEMPRE na mesma versão.
          Para atualizar, troque só aqui. -->
     <cucumber.version>7.34.8</cucumber.version>
+    <!-- O plugin Surefire e o provider dele precisam estar na mesma versão -->
+    <surefire.version>3.5.4</surefire.version>
   </properties>
+
+  <!-- BOM do JUnit: define a versão de TODAS as peças do JUnit 5 de uma vez.
+       Por isso as dependências do JUnit abaixo não têm <version>. -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.14.4</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
 
@@ -25,15 +41,7 @@
       <version>4.49.0</version>
     </dependency>
 
-    <!-- ===================== Cucumber + TestNG ===================== -->
-
-    <!-- Motor que executa os cenários (o "runner"). Só a parte de teste usa. -->
-    <dependency>
-      <groupId>org.testng</groupId>
-      <artifactId>testng</artifactId>
-      <version>7.12.0</version>
-      <scope>test</scope>
-    </dependency>
+    <!-- ===================== Cucumber + JUnit 5 ===================== -->
 
     <!-- Cucumber: lê os .feature e liga cada frase ao método Java (@Dado, @Quando, @Entao) -->
     <dependency>
@@ -43,10 +51,10 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Ponte entre o Cucumber e o TestNG (AbstractTestNGCucumberTests) -->
+    <!-- Motor do Cucumber dentro da plataforma do JUnit (substitui o cucumber-testng) -->
     <dependency>
       <groupId>io.cucumber</groupId>
-      <artifactId>cucumber-testng</artifactId>
+      <artifactId>cucumber-junit-platform-engine</artifactId>
       <version>${cucumber.version}</version>
       <scope>test</scope>
     </dependency>
@@ -57,6 +65,29 @@
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-picocontainer</artifactId>
       <version>${cucumber.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- @Suite: transforma o TestRunner numa suíte que chama o motor do Cucumber -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-suite</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Só a biblioteca de verificações (Assertions) do JUnit 5 -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- TEMPORÁRIO: os steps ainda usam org.testng.Assert.
+         Sai na etapa 4, quando todos os steps usarem o Assertions do JUnit. -->
+    <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <version>7.12.0</version>
       <scope>test</scope>
     </dependency>
 
@@ -100,16 +131,25 @@
 
   <build>
     <plugins>
-      <!-- Sem suítes XML: o Surefire encontra sozinho a classe TestRunner
-           (pelo padrão de nome "Test*"), e ela chama o Cucumber.
-           Para escolher os cenários: mvn test -Dcucumber.filter.tags="@login" -->
+      <!-- O Surefire encontra a classe TestRunner (padrão de nome "Test*");
+           o @Suite dela chama o motor do Cucumber.
+           Para escolher os cenários: mvn test "-Dcucumber.filter.tags=@login" -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.5.4</version>
+        <version>${surefire.version}</version>
         <configuration>
           <forkCount>0</forkCount>
         </configuration>
+        <!-- Força o provider do JUnit Platform. Sem isto, enquanto o TestNG
+             estiver no projeto, o Surefire escolheria o TestNG e rodaria 0 testes. -->
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.surefire</groupId>
+            <artifactId>surefire-junit-platform</artifactId>
+            <version>${surefire.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>
