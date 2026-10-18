@@ -18,12 +18,15 @@ import io.cucumber.java.pt.Quando;
 /**
  * Passos da lista de produtos (ordenação) e da página de detalhes.
  *
- * Ordenação: depois de ordenar na tela, compara a lista exibida com uma cópia dela
+ * Ordenação: depois de ordenar na tela, compara a lista exibida com uma cópia
+ * dela
  * ordenada pelo próprio Java. Se forem iguais, a tela está na ordem certa.
  *
- * Detalhes: os valores esperados (nome, id, preço e descrição) vêm do enum Product.
+ * Detalhes: os valores esperados (nome, id, preço e descrição) vêm do enum
+ * Product.
  *
- * Os passos verificam o comportamento CORRETO. Com os usuários que têm defeitos de
+ * Os passos verificam o comportamento CORRETO. Com os usuários que têm defeitos
+ * de
  * propósito, alguns cenários falham: eles têm a tag @expected-failure.
  *
  * Verificações com o Assertions do JUnit 5. Atenção à ordem no assertEquals:
@@ -31,12 +34,14 @@ import io.cucumber.java.pt.Quando;
  */
 public class ProductSteps {
 
-    // Margem para comparar números com casas decimais (29.99 pode virar 29.989999... no computador)
+    // Margem para comparar números com casas decimais (29.99 pode virar
+    // 29.989999... no computador)
     private static final double PRICE_DELTA = 0.001;
 
     private final TestContext context;
 
-    // Texto do alerta que apareceu ao ordenar (null = não apareceu). Guardado entre os passos do cenário.
+    // Texto do alerta que apareceu ao ordenar (null = não apareceu). Guardado entre
+    // os passos do cenário.
     private String alertaDaOrdenacao;
 
     public ProductSteps(TestContext context) {
@@ -49,7 +54,8 @@ public class ProductSteps {
     public void ordenoOsProdutosPor(String opcao) {
         InventoryPage inventoryPage = new InventoryPage(context.getDriver());
         inventoryPage.sortBy(opcao);
-        // O error_user abre um alerta ao ordenar: ele é fechado aqui e o texto guardado para a validação
+        // O error_user abre um alerta ao ordenar: ele é fechado aqui e o texto guardado
+        // para a validação
         alertaDaOrdenacao = inventoryPage.acceptAlertIfPresent();
     }
 
@@ -119,12 +125,17 @@ public class ProductSteps {
     @Entao("a página de detalhes deve mostrar o nome, a descrição, o preço e a imagem do produto {produto}")
     public void aPaginaDeDetalhesDeveMostrarOsDadosDoProduto(Product produto) {
         ProductDetailsPage detailsPage = new ProductDetailsPage(context.getDriver());
-        Assertions.assertEquals(produto.getName(), detailsPage.getProductName(), "Nome diferente do esperado.");
-        Assertions.assertEquals(produto.getDescription(), detailsPage.getProductDescription(),
-                "Descrição diferente da esperada.");
-        Assertions.assertEquals(produto.getPrice(), detailsPage.getProductPrice(), PRICE_DELTA,
-                "Preço na página de detalhes diferente do esperado.");
-        Assertions.assertTrue(detailsPage.isProductImageVisible(), "A imagem do produto não está visível.");
+        // assertAll: roda as 4 verificações e mostra TODAS as que falharem (não para na
+        // primeira)
+        Assertions.assertAll("Dados do produto " + produto,
+                () -> Assertions.assertEquals(produto.getName(), detailsPage.getProductName(),
+                        "Nome diferente do esperado."),
+                () -> Assertions.assertEquals(produto.getDescription(), detailsPage.getProductDescription(),
+                        "Descrição diferente da esperada."),
+                () -> Assertions.assertEquals(produto.getPrice(), detailsPage.getProductPrice(), PRICE_DELTA,
+                        "Preço na página de detalhes diferente do esperado."),
+                () -> Assertions.assertTrue(detailsPage.isProductImageVisible(),
+                        "A imagem do produto não está visível."));
     }
 
     // ---------- Carrinho pela página de detalhes ----------
