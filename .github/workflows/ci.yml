@@ -1,0 +1,123 @@
+# ============================================================
+# CI - Selenium + Cucumber BDD (Sauce Demo)
+#
+# Quando roda:
+#   - a cada push e pull request na branch master (tags padrão: @regression);
+#   - manualmente pela aba "Actions" > "CI - Cucumber BDD" > "Run workflow",
+#     informando as tags e o navegador.
+#
+# O que faz:
+#   1. instala o Java 17 e baixa as dependências do Maven (com cache);
+#   2. cria o config.properties a partir do modelo (o arquivo real fica fora do Git);
+#   3. roda os cenários das tags escolhidas em modo headless;
+#   4. publica os relatórios (Extent e Cucumber), os prints e os logs como "artifacts";
+#   5. envia o resultado por e-mail com os relatórios em anexo, SE os segredos
+#      EMAIL_* estiverem cadastrados (Settings > Secrets and variables > Actions).
+#
+# O envio de e-mail é responsabilidade da esteira: o framework não tem nada de e-mail.
+# ============================================================
+name: CI - Cucumber BDD
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "Tags do Cucumber. Ex.: @regression | @login | @login and not @login-invalido"
+        type: string
+        default: "@regression"
+      browser:
+        description: "Navegador"
+        type: choice
+        options: [chrome, firefox]
+        default: chrome
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # Em push/PR os inputs não existem, então usamos os valores padrão
+      TAGS: ${{ inputs.tags || '@regression' }}
+      BROWSER: ${{ inputs.browser || 'chrome' }}
+      # "true" só se a senha de app foi cadastrada nos segredos (o valor da senha não fica aqui)
+      EMAIL_CONFIGURADO: ${{ secrets.EMAIL_APP_PASSWORD != '' }}
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v5
+
+      - name: Instalar Java 17 (com cache do Maven)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Criar config.properties a partir do modelo
+        run: cp src/test/resources/config.properties.example src/test/resources/config.properties
+
+      - name: Rodar os cenários "${{ env.TAGS }}" no ${{ env.BROWSER }} (headless)
+        run: mvn -B clean test "-Dcucumber.filter.tags=$TAGS" -Dbrowser="$BROWSER" -Dheadless=true
+
+      # Lê os totais do relatório do TestNG para usar no assunto e no corpo do e-mail
+      - name: Resumir resultados
+        id: resumo
+        if: always()
+        run: |
+          FILE=target/surefire-reports/testng-results.xml
+          LINE=$(grep -m1 -o '<testng-results[^>]*>' "$FILE" 2>/dev/null || true)
+          for k in total passed failed skipped; do
+            v=$(echo "$LINE" | grep -o "$k=\"[0-9]*\"" | grep -o '[0-9]*' || true)
+            echo "$k=${v:--}" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Publicar relatórios, prints e logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: resultados-${{ github.run_number }}
+          path: |
+            reports/
+            screenshots/
+            logs/
+            target/surefire-reports/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Enviar relatório por e-mail
+        if: always() && env.EMAIL_CONFIGURADO == 'true'
+        uses: dawidd6/action-send-mail@v22
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_SENDER }}
+          password: ${{ secrets.EMAIL_APP_PASSWORD }}
+          from: QA Automation <${{ secrets.EMAIL_SENDER }}>
+          to: ${{ secrets.EMAIL_RECIPIENTS }}
+          subject: "[${{ job.status == 'success' && 'PASSOU' || 'FALHOU' }}] Cucumber BDD - ${{ env.TAGS }} - ${{ steps.resumo.outputs.passed }} passou, ${{ steps.resumo.outputs.failed }} falhou, ${{ steps.resumo.outputs.skipped }} ignorado(s)"
+          html_body: |
+            <h2 style="color:${{ job.status == 'success' && '#27ae60' || '#c0392b' }}">Execução ${{ job.status == 'success' && 'PASSOU' || 'FALHOU' }}</h2>
+            <p>
+              <b>Tags:</b> ${{ env.TAGS }}<br>
+              <b>Navegador:</b> ${{ env.BROWSER }}<br>
+              <b>Disparado por:</b> ${{ github.actor }} (${{ github.event_name }})
+            </p>
+            <table border="1" cellpadding="6" style="border-collapse:collapse">
+              <tr><th>Passou</th><th>Falhou</th><th>Ignorado</th><th>Total</th></tr>
+              <tr align="center">
+                <td>${{ steps.resumo.outputs.passed }}</td>
+                <td>${{ steps.resumo.outputs.failed }}</td>
+                <td>${{ steps.resumo.outputs.skipped }}</td>
+                <td>${{ steps.resumo.outputs.total }}</td>
+              </tr>
+            </table>
+            <p>Os relatórios Extent e Cucumber estão em anexo.
+               Prints e logs: <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">execução no GitHub Actions</a> (seção Artifacts).</p>
+            <p>Atenciosamente,<br>Thamires, QA Team.</p>
+          attachments: reports/*.html

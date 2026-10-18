@@ -1,0 +1,24 @@
+# ============================================================
+# Configurações do projeto
+# Modelo: copie este arquivo para config.properties (mesma pasta) e preencha os seus dados.
+# O config.properties fica fora do Git (.gitignore).
+# Qualquer chave pode ser trocada numa execução: mvn test -Dbrowser=firefox
+# ============================================================
+
+# ---------- Aplicação ----------
+base.url=https://www.saucedemo.com/
+# Usuário usado como pré-condição nos cenários de carrinho e checkout (credenciais públicas do Sauce Demo)
+standard.username=standard_user
+standard.password=secret_sauce
+
+# ---------- Navegador ----------
+# chrome | firefox | edge
+browser=chrome
+# true = roda sem abrir a janela do navegador
+headless=false
+# Tempo máximo (em segundos) das esperas explícitas
+timeout.seconds=10
+
+# ----------- Download ----------------
+# Pasta (dentro do projeto) onde o navegador salva os downloads dos testes
+download.dir=downloads
