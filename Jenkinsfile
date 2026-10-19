@@ -1,13 +1,16 @@
 // ============================================================
-// Pipeline Jenkins - Selenium + Cucumber BDD (Sauce Demo)
+// Pipeline Jenkins - Selenium + Cucumber BDD + JUnit 5 (Sauce Demo)
 //
 // Pré-requisitos no Jenkins (Gerenciar Jenkins):
 //   - Tools: Maven com o nome MAVEN-3.9.16 e JDK com o nome JDK-25
-//   - Plugins: Pipeline, Git, TestNG Results, Timestamper, Credentials Binding, Email Extension
+//   - Plugins: Pipeline, Git, JUnit, Timestamper, Credentials Binding, Email Extension
 //   - Credentials:
 //       gmail-smtp        -> Username with password (Gmail + senha de app), usada no SMTP
 //       email-recipients  -> Secret text com os destinatários separados por vírgula
 //   - System > Extended E-mail Notification: smtp.gmail.com, porta 465, SSL, credencial gmail-smtp
+//
+// Filtro de tags: usa as tags do JUnit (-Dgroups), SEM o @.
+//   regression | login | login & !login-invalido | cart | checkout
 //
 // O envio do e-mail é responsabilidade da esteira (plugin Email Extension):
 // o framework não tem nada de e-mail.
@@ -24,8 +27,8 @@ pipeline {
 
     // Opções exibidas em "Construir com parâmetros"
     parameters {
-        string(name: 'TAGS', defaultValue: '@regression',
-               description: 'Tags do Cucumber. Ex.: @regression | @login | @login and not @login-invalido')
+        string(name: 'TAGS', defaultValue: 'regression',
+               description: 'Tags do JUnit, sem @. Ex.: regression | login | login & !login-invalido | cart | checkout')
         choice(name: 'BROWSER', choices: ['chrome', 'firefox', 'edge'],
                description: 'Navegador')
         booleanParam(name: 'HEADLESS', defaultValue: true,
@@ -57,9 +60,9 @@ pipeline {
         stage('Executar cenários') {
             steps {
                 // -Dmaven.test.failure.ignore=true: um cenário falhando não "quebra" o build;
-                // o resultado (instável/sucesso) é decidido pelo plugin do TestNG no post.
-                // As aspas em volta do -Dcucumber.filter.tags protegem os espaços das tags.
-                bat "mvn -B clean test \"-Dcucumber.filter.tags=${params.TAGS}\" " +
+                // o resultado (instável/sucesso) é decidido pelo plugin JUnit no post.
+                // As aspas em volta do -Dgroups protegem os espaços e os símbolos & | ! no cmd do Windows.
+                bat "mvn -B clean test \"-Dgroups=${params.TAGS}\" " +
                     "-Dbrowser=${params.BROWSER} -Dheadless=${params.HEADLESS} -Dmaven.test.failure.ignore=true"
             }
         }
@@ -67,8 +70,9 @@ pipeline {
 
     post {
         always {
-            // Gráfico e detalhes dos cenários na página do build (cada cenário = 1 teste)
-            testNG(reportFilenamePattern: 'target/surefire-reports/testng-results.xml')
+            // Gráfico e detalhes dos cenários na página do build (cada cenário = 1 teste).
+            // O Surefire grava um TEST-*.xml no formato JUnit, que o plugin JUnit lê.
+            junit(testResults: 'target/surefire-reports/TEST-*.xml', allowEmptyResults: true)
 
             // Relatórios (Extent e Cucumber), prints e logs para download
             archiveArtifacts(artifacts: 'reports/**, screenshots/**, logs/**, target/surefire-reports/**',
@@ -76,7 +80,7 @@ pipeline {
 
             script {
                 if (params.ENVIAR_EMAIL) {
-                    // currentResult já considera o resultado do TestNG: SUCCESS, UNSTABLE (cenário falhou) ou FAILURE
+                    // currentResult já considera o resultado do JUnit: SUCCESS, UNSTABLE (cenário falhou) ou FAILURE
                     def passou = currentBuild.currentResult == 'SUCCESS'
                     def status = passou ? 'PASSOU' : 'FALHOU'
                     def cor = passou ? '#27ae60' : '#c0392b'
@@ -84,7 +88,7 @@ pipeline {
                     withCredentials([string(credentialsId: 'email-recipients', variable: 'EMAIL_RECIPIENTS')]) {
                         emailext(
                             to: env.EMAIL_RECIPIENTS,
-                            subject: "[${status}] Cucumber BDD - ${params.TAGS} - build #${env.BUILD_NUMBER}",
+                            subject: "[${status}] Cucumber BDD (JUnit 5) - ${params.TAGS} - build #${env.BUILD_NUMBER}",
                             mimeType: 'text/html',
                             attachmentsPattern: 'reports/*.html',
                             // \${TEST_COUNTS...} tem a barra para o Groovy não interpretar:
@@ -115,7 +119,7 @@ pipeline {
             }
         }
         unstable {
-            echo 'Há cenários com falha: confira a aba "TestNG Results" e os relatórios em "Artefatos".'
+            echo 'Há cenários com falha: confira a aba "Resultados de testes" e os relatórios em "Artefatos".'
         }
     }
 }
