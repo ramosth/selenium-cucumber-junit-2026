@@ -431,4 +431,19 @@ Com isso, Ctrl+clique numa frase leva ao método Java, e frases sem passo ficam 
 
 ## Próximos passos
 
-- Seguem no roteiro: Playwright + Java, Cypress, RestAssured, Appium e Robot Framework, sempre com o Sauce Demo.
+- Seguem no roteiro: Playwright + Java, Cypress, Appium e Robot Framework.
+
+---
+
+## Portfólio
+
+| Projeto | Foco |
+|---|---|
+| [selenium-automation-framework-2026](https://github.com/ramosth/selenium-automation-framework-2026) | Selenium + TestNG (UI) |
+| [selenium-cucumber-testng-2026](https://github.com/ramosth/selenium-cucumber-testng-2026) | Selenium + Cucumber + TestNG (UI) |
+| **selenium-cucumber-junit-2026** | **Selenium + Cucumber + JUnit 5 (UI)** |
+| [restassured-cucumber-junit-2026](https://github.com/ramosth/restassured-cucumber-junit-2026) | REST Assured + Cucumber + JUnit 5 (API) |
+
+---
+
+Thamires Ramos · QA Analyst
